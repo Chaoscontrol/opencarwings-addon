@@ -58,6 +58,7 @@ INSTALLED_APPS = [
     'api',
     'carwings',
     'db',
+    'ui',
 ]
 
 AUTH_USER_MODEL = 'db.User'
@@ -77,7 +78,10 @@ ROOT_URLCONF = 'carwings.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        'DIRS': [
+            BASE_DIR / 'ui' / 'templates',
+            BASE_DIR / 'templates',
+        ],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [

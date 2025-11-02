@@ -8,6 +8,6 @@ export PSQL_DATABASE_HOST=localhost
 export PSQL_DATABASE_PORT=5432
 export PYTHONPATH=/opt/opencarwings
 export DJANGO_SETTINGS_MODULE=carwings.settings
-export DEBUG=false
+export DEBUG=true
 
 exec python manage.py runserver 0.0.0.0:8124 --noreload

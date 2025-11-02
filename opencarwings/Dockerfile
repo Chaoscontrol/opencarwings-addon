@@ -14,6 +14,7 @@ RUN apk add --no-cache \
     postgresql-dev \
     gosu \
     postgresql-client \
+    curl \
     && python3 -m pip install --upgrade pip
 
 # Clone OpenCarwings upstream
@@ -35,6 +36,10 @@ RUN mkdir -p /run/postgresql && chown postgres:postgres /run/postgresql
 # Copy root filesystem
 COPY rootfs/ /
 
+# Set permissions for service scripts
+RUN chmod +x /etc/cont-init.d/*.sh || true
+RUN chmod +x /etc/services.d/*/run || true
+
 # Set environment variables
 ENV PSQL_DATABASE=carwings \
     PSQL_USER=carwings_user \
@@ -52,4 +57,4 @@ EXPOSE 8124 8125 55230
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
-  CMD curl -f http://localhost:8124/health/ || exit 1
+    CMD curl -f http://localhost:8899/health || exit 1

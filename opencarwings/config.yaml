@@ -14,7 +14,6 @@ ports_description:
   8124/tcp: Web UI (HTTP)
   8125/tcp: Web UI (HTTPS)
   55230/tcp: TCU TCP Server
-healthcheck: "http://localhost:8899/health"
 options:
   timezone: UTC
   log_level: info
