@@ -1,4 +1,4 @@
-#!/usr/bin/env bashio
+#!/command/with-contenv bashio
 # shellcheck shell=bash
 
 cd /opt/opencarwings
