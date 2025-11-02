@@ -1,164 +1,101 @@
 # OpenCarwings Home Assistant Add-on
 
-[![GitHub Release](https://img.shields.io/github/release/Chaoscontrol/opencarwings-addon.svg)](https://github.com/Chaoscontrol/opencarwings-addon/releases)
-[![GitHub Activity](https://img.shields.io/github/commit-activity/y/Chaoscontrol/opencarwings-addon)](https://github.com/Chaoscontrol/opencarwings-addon/commits/main)
-
 Home Assistant add-on for [OpenCarwings](https://github.com/developerfromjokela/opencarwings) - a Nissan CARWINGS-compatible server for bringing back Nissan TCUs and online services.
 
-## Features
+**⚠️ SUPER ALPHA WARNING**: This is one of my first add-ons ever created, and it was fully vibe-coded as I'm not a dev. I just did this for myself, but I think it can be useful for others, so I'm glad to share it. I don't promise to maintain it long term, but I'll do my best as long as I keep my interest in it. Same for bug fixing etc.
 
-- **Remote A/C Control**: Start/stop climate control remotely
-- **Charging Management**: Control EV charging schedules
-- **Notifications**: Receive alerts from your Nissan vehicle
-- **TCU Communication**: Direct communication with Nissan Telematics Control Units
-- **Trip Data**: Access journey information and efficiency stats
-- **Built-in Databases**: PostgreSQL and Redis included (no external setup required)
-- **Automatic Updates**: Daily sync with upstream OpenCarwings repository
+## What it does
 
-## Installation
+This add-on packages the upstream OpenCarwings server so you can run it directly on Home Assistant OS/Supervisor, making it full private and own all the information yourself. It provides:
 
-### Prerequisites
+- Remote A/C control for Nissan LEAF
+- Charging management
+- Trip data and efficiency stats
+- TCU (Telematics Control Unit) communication
+- Built-in PostgreSQL and Redis databases (no external setup needed)
 
-- Home Assistant OS/Supervisor
-- Nissan LEAF with CARWINGS-compatible TCU
+## Quick Setup
 
-### Add Repository
+### 1. Add Repository
 
-1. Open Home Assistant
-2. Go to **Settings** → **Add-ons** → **Add-on Store**
-3. Click the menu (⋮) → **Repositories**
-4. Add: `https://github.com/Chaoscontrol/opencarwings-addon`
-5. Click **Add** then **Close**
+In Home Assistant:
 
-### Install Add-on
+- Settings → Add-ons → Add-on Store → menu (⋮) → Repositories
+- Add: `https://github.com/Chaoscontrol/opencarwings-addon`
+- Find "OpenCarwings" and click Install
 
-1. Find "OpenCarwings" in the add-on store
-2. Click **Install**
-3. Configure options (see below)
-4. Click **Start**
+### 2. Configure Trusted Domains
 
-## Configuration
+**IMPORTANT**: You need a public domain for remote car access. Configure trusted domains in add-on options:
 
-### Main Options
+```yaml
+trusted_domains:
+  - "yourdomain.com" # Adding a first level domain automatically includes all subdomains
+```
 
-| Option      | Description       | Default |
-| ----------- | ----------------- | ------- |
-| `timezone`  | System timezone   | `UTC`   |
-| `log_level` | Logging verbosity | `info`  |
+This is necessary because your car needs to reach the server remotely for TCU communication.
 
-### Ports
+### 3. Set Up Port Forwarding/Tunnels
 
-- **8124**: Web UI (HTTP)
-- **8125**: Web UI (HTTPS) - configure SSL certificates separately
-- **55230**: TCU TCP Server
+You need to expose these ports publicly so your car can connect:
+
+- **8124** (Web UI) - Forward to your HA IP
+- **55230** (TCU TCP Server) - Forward to your HA IP
+
+Use port forwarding on your router, or services like Cloudflare Tunnel (my recommendation), ngrok, etc.
+
+Example:
+
+- ocw.mydomain.com -> http://homeassistant:8124 (for WebUI)
+- ocw-tcu.mydomain.com -> tcp://homeassistant:55230 (for TCU communication. Notice the TCP!)
+
+### 4. Configure Your Car
+
+In your Nissan LEAF's navigation system and TCU settings, use your public domain/IP as the CARWINGS server URL.
+
+From the previous example: ocw-tcu.mydomain.com
+
+## Configuration Options
+
+| Option            | Description                         | Default |
+| ----------------- | ----------------------------------- | ------- |
+| `timezone`        | Your timezone                       | `UTC`   |
+| `log_level`       | Logging level                       | `info`  |
+| `trusted_domains` | Allowed domains (include wildcards) | `[]`    |
 
 ## Usage
 
-### Web Interface
+1. Start the add-on
+2. Access WebUI in http://homeassistant:8124
+3. Create an admin account
+4. Add your Nissan vehicle using VIN and TCU details
+5. Configure SMS gateway if needed for TCU wake-up
+6. Your car should now connect remotely!
 
-1. After starting the add-on, click **Open Web UI**
-2. Create an admin account
-3. Add your Nissan vehicle
-4. Configure SMS gateway for TCU activation (optional)
+## Ports Used
 
-### Vehicle Setup
-
-1. Register your Nissan account in the web UI
-2. Add your vehicle using VIN
-3. Configure SMS activation (see TCU setup below)
-
-### TCU Activation
-
-The add-on communicates with Nissan TCUs via SMS activation:
-
-1. Configure SMS provider in vehicle settings
-2. TCU receives activation SMS
-3. TCU connects to add-on's TCP server (port 55230)
-4. Remote commands become available
-
-## Development
-
-### Repository Structure
-
-```
-opencarwings-addon/
-├── opencarwings/           # Add-on files
-│   ├── config.yaml        # Add-on configuration
-│   ├── build.json         # Build settings
-│   ├── Dockerfile         # Container build
-│   ├── rootfs/           # Runtime files
-│   └── CHANGELOG.md      # Version history
-├── .github/workflows/    # CI/CD workflows
-└── README.md             # This file
-```
-
-### Upstream Sync
-
-The add-on automatically syncs with upstream OpenCarwings daily:
-
-- Checks for new commits in `developerfromjokela/opencarwings`
-- Updates Dockerfile to latest commit
-- Generates changelog from commit messages
-- Bumps add-on version
-- Triggers rebuild
-
-### Manual Patches
-
-For add-on specific changes:
-
-1. Modify files in `opencarwings/`
-2. Push to trigger CI build
-3. Test changes
-
-## Troubleshooting
-
-### Common Issues
-
-**Add-on won't start:**
-
-- Check logs in Home Assistant Supervisor
-- Verify port conflicts (8080, 8443, 55230)
-- Ensure sufficient disk space for databases
-
-**TCU not connecting:**
-
-- Verify SMS gateway configuration
-- Check TCU compatibility
-- Review add-on logs for connection attempts
-
-**Database errors:**
-
-- Add-on includes built-in PostgreSQL/Redis
-- Data persists in `/data` directory
-- Manual database reset: stop add-on, delete `/data/postgres` and `/data/redis`
-
-### Logs
-
-View logs through:
-
-- Home Assistant Supervisor → Add-ons → OpenCarwings → Log
-- Add-on web UI (if accessible)
-
-## Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Make changes
-4. Test thoroughly
-5. Submit a pull request
-
-## License
-
-This add-on is licensed under MIT. The upstream OpenCarwings project has its own license.
+- **8124**: Web interface (HTTP)
+- **8125**: Web interface (HTTPS) - configure SSL separately
+- **55230**: TCU communication (TCP)
 
 ## Links
 
 - **Upstream Project**: [developerfromjokela/opencarwings](https://github.com/developerfromjokela/opencarwings)
+- **Upstream Website and Public Server**: [opencarwings.viaaq.eu](https://opencarwings.viaaq.eu)
 - **Nissan TCU Protocol**: [nissan-leaf-tcu](https://github.com/developerfromjokela/nissan-leaf-tcu)
-- **Home Assistant Add-ons**: [addons.community](https://addons.community)
+- [**Guide to Bringing Your Navigator Back Online**](https://opencarwings.viaaq.eu/static/navi_guide.html)
+- [**Guide to Bringing Your TCU Back Online**](https://opencarwings.viaaq.eu/static/tcu_guide.html)
+- [**OCW Android app**](https://github.com/developerfromjokela/opencarwings-android)
 
 ## Support
 
+This is experimental software. Use at your own risk. Check the logs if something doesn't work.
+
 - **Issues**: [GitHub Issues](https://github.com/Chaoscontrol/opencarwings-addon/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/Chaoscontrol/opencarwings-addon/discussions)
-- **Home Assistant Community**: Search for "OpenCarwings" in the forums
+
+## Thanks
+
+This is just the addon for this amazing work that @developerfromjokela has done with project.
+My heartfelt thanks to allow all of us oldie Leaf users to make it even a better little EV than it already is.
+
+Full credits to him for OpenCarwings, related projects and guides created to help us navigate this not so straightforward re-connection process.
