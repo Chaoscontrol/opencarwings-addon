@@ -4,6 +4,8 @@ Home Assistant add-on for [OpenCarwings](https://github.com/developerfromjokela/
 
 **⚠️ SUPER ALPHA WARNING**: This is one of my first add-ons ever created, and it was fully vibe-coded as I'm not a dev. I just did this for myself, but I think it can be useful for others, so I'm glad to share it. I don't promise to maintain it long term, but I'll do my best as long as I keep my interest in it. Same for bug fixing etc.
 
+I haven't even tested the update process yet from upstream changes. But once it's working, it will update ANY commits done daily. No testing, no alerts. So considering this your warning.
+
 ## What it does
 
 This add-on packages the upstream OpenCarwings server so you can run it directly on Home Assistant OS/Supervisor, making it full private and own all the information yourself. It provides:
