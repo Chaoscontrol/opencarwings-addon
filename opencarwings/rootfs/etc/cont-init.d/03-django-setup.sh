@@ -26,6 +26,8 @@ find . -name "settings*.py" -type f
 if [ -f "carwings/settings/docker.py" ]; then
     export DJANGO_SETTINGS_MODULE="carwings.settings.docker"
     bashio::log.info "Found carwings/settings/docker.py"
+    # Copy docker settings to main settings.py for modifications
+    cp carwings/settings/docker.py carwings/settings.py
 elif [ -f "carwings/settings.py" ]; then
     export DJANGO_SETTINGS_MODULE="carwings.settings"
     bashio::log.info "Found carwings/settings.py"
@@ -57,9 +59,9 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'crispy_forms',
     'crispy_bootstrap4',
+    'bootstrap4',
     'rest_framework',
     'rest_framework_simplejwt',
-    'rest_framework.authtoken',
     'api',
     'carwings',
     'db',
@@ -141,20 +143,29 @@ EOF
     bashio::log.info "Created basic Django settings"
 fi
 
-# Add static file serving middleware for development
-bashio::log.info "Adding static file serving configuration..."
+# Modify settings.py to use our configuration
+bashio::log.info "Modifying Django settings for add-on compatibility..."
 if [ -f "carwings/settings.py" ]; then
-    # Add whitenoise for static file serving in production
-    sed -i '/django.middleware.security.SecurityMiddleware/a\    '\''whitenoise.middleware.WhiteNoiseMiddleware'\'',' /opt/opencarwings/carwings/settings.py
-    sed -i '/INSTALLED_APPS = \[/a\    '\''whitenoise.runserver_nostatic'\'',' /opt/opencarwings/carwings/settings.py
+    # Update ALLOWED_HOSTS for add-on environment
+    sed -i "s/ALLOWED_HOSTS = .*/ALLOWED_HOSTS = ['*']/" carwings/settings.py
     
-    # Add static file configuration
-    echo "
+    # Update DEBUG to False for production
+    sed -i "s/DEBUG = .*/DEBUG = False/" carwings/settings.py
+    
+    # Add WhiteNoise middleware (only if not already present)
+    if ! grep -q "whitenoise.middleware.WhiteNoiseMiddleware" carwings/settings.py; then
+        sed -i '/django.middleware.security.SecurityMiddleware/a\    '\''whitenoise.middleware.WhiteNoiseMiddleware'\'',' carwings/settings.py
+    fi
+    
+    # Add static files configuration (only if not already present)
+    if ! grep -q "STATICFILES_STORAGE.*whitenoise" carwings/settings.py; then
+        echo "
 # Static files configuration for production
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 WHITENOISE_USE_FINDERS = True
 WHITENOISE_AUTOREFRESH = True
-" >> /opt/opencarwings/carwings/settings.py
+" >> carwings/settings.py
+    fi
 fi
 
 # Wait for local database to be ready (PostgreSQL should already be running from previous script)
