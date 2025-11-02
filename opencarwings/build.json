@@ -1,0 +1,9 @@
+{
+  "build_from": {
+    "amd64": "ghcr.io/hassio-addons/base:18.2.1"
+  },
+  "codenotary": {
+    "signer": "codenotary@frenck.dev",
+    "base_image": "codenotary@frenck.dev"
+  }
+}

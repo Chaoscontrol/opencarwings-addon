@@ -1,0 +1,36 @@
+#!/usr/bin/env bash
+# shellcheck shell=bash
+
+cd /opt/opencarwings
+
+echo "OpenCarwings add-on service starting..."
+
+# Set environment variables
+export PYTHONPATH="/opt/opencarwings:$PYTHONPATH"
+export DJANGO_SETTINGS_MODULE="carwings.settings"
+export PSQL_DATABASE=carwings
+export PSQL_USER=carwings_user
+export PSQL_PASSWORD=secure_password
+export PSQL_DATABASE_HOST=localhost
+export PSQL_DATABASE_PORT=5432
+export REDIS_HOST=localhost
+export REDIS_PORT=6379
+
+# Check if PostgreSQL is running
+if ! pgrep postgres >/dev/null; then
+    echo "Starting PostgreSQL..."
+    su - postgres -c "/usr/lib/postgresql/*/bin/pg_ctl -D /data/postgres -l /data/postgres/logfile start"
+    sleep 10
+fi
+
+# Check if Redis is running
+if ! pgrep redis-server >/dev/null; then
+    echo "Starting Redis..."
+    redis-server --daemonize yes --port 6379
+    sleep 5
+fi
+
+echo "Starting Django development server on port 8124..."
+
+# Start Django with error handling
+exec python3 manage.py runserver 0.0.0.0:8124 --nothreading --noreload

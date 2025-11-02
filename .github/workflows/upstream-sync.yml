@@ -1,0 +1,92 @@
+name: Upstream Sync
+
+on:
+  schedule:
+    # Run daily at 2 AM UTC
+    - cron: "0 2 * * *"
+  workflow_dispatch:
+
+jobs:
+  check-upstream:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Get latest upstream commit
+        id: upstream
+        run: |
+          UPSTREAM_SHA=$(git ls-remote https://github.com/developerfromjokela/opencarwings.git HEAD | cut -f1)
+          echo "sha=$UPSTREAM_SHA" >> $GITHUB_OUTPUT
+
+      - name: Check if upstream changed
+        id: check
+        run: |
+          CURRENT_SHA=$(grep -oP '(?<=UPSTREAM_REF=)[^"]*' opencarwings/Dockerfile || echo "main")
+          if [ "$CURRENT_SHA" != "${{ steps.upstream.outputs.sha }}" ]; then
+            echo "changed=true" >> $GITHUB_OUTPUT
+            echo "new_sha=${{ steps.upstream.outputs.sha }}" >> $GITHUB_OUTPUT
+          else
+            echo "changed=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Update Dockerfile with new upstream SHA
+        if: steps.check.outputs.changed == 'true'
+        run: |
+          sed -i "s/ARG UPSTREAM_REF=.*/ARG UPSTREAM_REF=${{ steps.check.outputs.new_sha }}/" opencarwings/Dockerfile
+
+      - name: Generate changelog
+        if: steps.check.outputs.changed == 'true'
+        run: |
+          # Get commit messages since last update
+          LAST_SHA=$(git log --oneline -1 --grep="chore: update upstream" --format="%H" || echo "")
+          if [ -n "$LAST_SHA" ]; then
+            git log --oneline --pretty=format:"%s" "$LAST_SHA"..HEAD | head -20 > changelog.tmp
+          else
+            echo "Initial upstream sync" > changelog.tmp
+          fi
+
+          # Update CHANGELOG.md
+          {
+            echo "# Changelog"
+            echo ""
+            echo "## $(date +%Y-%m-%d) - Upstream Update"
+            echo ""
+            cat changelog.tmp
+            echo ""
+            echo "---"
+            echo ""
+            cat opencarwings/CHANGELOG.md 2>/dev/null || echo ""
+          } > opencarwings/CHANGELOG.md
+
+      - name: Bump version
+        if: steps.check.outputs.changed == 'true'
+        run: |
+          CURRENT_VERSION=$(grep -oP '(?<=version: ")[^"]*' opencarwings/config.yaml)
+          # Simple version bump (increment patch)
+          IFS='.' read -r major minor patch <<< "$CURRENT_VERSION"
+          NEW_VERSION="$major.$minor.$((patch + 1))"
+          sed -i "s/version: \"$CURRENT_VERSION\"/version: \"$NEW_VERSION\"/" opencarwings/config.yaml
+
+      - name: Commit changes
+        if: steps.check.outputs.changed == 'true'
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add .
+          git commit -m "chore: update upstream to ${{ steps.check.outputs.new_sha }}"
+
+      - name: Push changes
+        if: steps.check.outputs.changed == 'true'
+        uses: ad-m/github-push-action@master
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Trigger build workflow
+        if: steps.check.outputs.changed == 'true'
+        run: |
+          echo "Build workflow would be triggered here"
+          # In a real setup, this would trigger a separate build workflow

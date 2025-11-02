@@ -1,0 +1,25 @@
+name: OpenCarwings
+version: "1.0.0"
+slug: opencarwings
+description: Nissan CARWINGS-compatible server for bringing back Nissan TCUs and online services
+url: https://github.com/Chaoscontrol/opencarwings-addon
+codenotary: codenotary@frenck.dev
+init: false
+arch:
+  - amd64
+ports:
+  8124/tcp: 8124
+  8125/tcp: 8125
+  55230/tcp: 55230
+ports_description:
+  8124/tcp: Web UI (HTTP)
+  8125/tcp: Web UI (HTTPS)
+  55230/tcp: TCU TCP Server
+options:
+  timezone: UTC
+  log_level: info
+  sms_activation_message: "ACTIVATE"
+schema:
+  timezone: str?
+  log_level: list(trace|debug|info|notice|warning|error|fatal)
+  sms_activation_message: str
