@@ -1,6 +1,8 @@
 #!/bin/sh
 cd /opt/opencarwings || exit 1
 
+echo "OpenCarwings add-on service starting..."
+
 export PSQL_DATABASE=carwings
 export PSQL_USER=carwings_user
 export PSQL_PASSWORD=secure_password
@@ -12,5 +14,7 @@ export PYTHONPATH=/opt/opencarwings
 export DJANGO_SETTINGS_MODULE=carwings.settings
 export DEBUG=true
 export SECRET_KEY=django-insecure-default-key-change-in-production
+
+echo "Starting Django development server on port 8124..."
 
 exec python manage.py runserver 0.0.0.0:8124 --noreload
