@@ -2,7 +2,7 @@ name: Sync Upstream
 
 on:
   schedule:
-    - cron: "0 3 * * *" # Runs at 3 AM UTC (after version bump)
+    - cron: "0 3 * * *"
   workflow_dispatch:
 
 jobs:
@@ -17,23 +17,18 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Add upstream remote
-        run: |
-          git remote add upstream https://github.com/developerfromjokela/opencarwings.git || true
-          git fetch upstream main
-
       - name: Check for upstream changes
         id: check_upstream
         run: |
-          # Get the last commit we synced (stored in a marker file)
+          # Fetch latest upstream commit hash
+          LATEST_UPSTREAM=$(git ls-remote https://github.com/developerfromjokela/opencarwings.git HEAD | cut -f1)
+
+          # Get last synced commit
           if [ -f ".upstream_sync" ]; then
             LAST_SYNC=$(cat .upstream_sync)
           else
             LAST_SYNC=""
           fi
-
-          # Get latest upstream commit
-          LATEST_UPSTREAM=$(git rev-parse upstream/main)
 
           if [ "$LAST_SYNC" = "$LATEST_UPSTREAM" ]; then
             echo "has_changes=false" >> $GITHUB_OUTPUT
@@ -43,74 +38,112 @@ jobs:
             echo "last_sync=$LAST_SYNC" >> $GITHUB_OUTPUT
             echo "latest_upstream=$LATEST_UPSTREAM" >> $GITHUB_OUTPUT
             echo "New upstream changes detected"
+            echo "Last sync: $LAST_SYNC"
+            echo "Latest upstream: $LATEST_UPSTREAM"
           fi
 
-      - name: Generate upstream changelog
+      - name: Get upstream changelog
         if: steps.check_upstream.outputs.has_changes == 'true'
+        id: upstream_log
         run: |
           LAST_SYNC="${{ steps.check_upstream.outputs.last_sync }}"
 
-          {
-            echo "### Upstream changes synced on $(date +%Y-%m-%d)"
-            echo ""
-            if [ -z "$LAST_SYNC" ]; then
-              echo "Initial sync with upstream repository"
-              git log upstream/main --pretty=format:"- %s (%h)" -20  # Last 20 commits
-            else
-              git log ${LAST_SYNC}..upstream/main --pretty=format:"- %s (%h)"
-            fi
-            echo ""
-            echo ""
-          } > upstream_changes.md
+          # Clone upstream to get commit history
+          git clone --bare https://github.com/developerfromjokela/opencarwings.git temp_upstream
+          cd temp_upstream
 
-          # Append to CHANGELOG.md
+          if [ -z "$LAST_SYNC" ]; then
+            # First sync - get last 10 commits
+            git log --pretty=format:"- %s (%h)" -10 > ../upstream_commits.txt
+          else
+            # Get commits since last sync
+            git log --pretty=format:"- %s (%h)" ${LAST_SYNC}..HEAD > ../upstream_commits.txt || {
+              echo "Could not get commit range, getting last 10 commits instead"
+              git log --pretty=format:"- %s (%h)" -10 > ../upstream_commits.txt
+            }
+          fi
+
+          cd ..
+          rm -rf temp_upstream
+
+      - name: Get current version
+        if: steps.check_upstream.outputs.has_changes == 'true'
+        id: current_version
+        run: |
+          if grep -q '^version:' opencarwings/config.yaml; then
+            VERSION=$(grep '^version:' opencarwings/config.yaml | sed 's/version: "\(.*\)"/\1/')
+          else
+            VERSION="0.0.0"
+          fi
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Current version: $VERSION"
+
+      - name: Bump base version
+        if: steps.check_upstream.outputs.has_changes == 'true'
+        id: bump_version
+        run: |
+          CURRENT="${{ steps.current_version.outputs.version }}"
+
+          # Strip addon patch if it exists (0.0.2-3 -> 0.0.2)
+          if [[ "$CURRENT" =~ ^([0-9]+\.[0-9]+\.[0-9]+)-([0-9]+)$ ]]; then
+            BASE="${BASH_REMATCH[1]}"
+          elif [[ "$CURRENT" =~ ^([0-9]+\.[0-9]+\.[0-9]+)$ ]]; then
+            BASE="$CURRENT"
+          else
+            BASE="0.0.0"
+          fi
+
+          # Bump patch of base version
+          IFS='.' read -r major minor patch <<< "$BASE"
+          NEW_VERSION="${major}.${minor}.$((patch + 1))"
+
+          echo "new_version=$NEW_VERSION" >> $GITHUB_OUTPUT
+          echo "New upstream version: $NEW_VERSION"
+
+      - name: Update changelog
+        if: steps.check_upstream.outputs.has_changes == 'true'
+        run: |
+          NEW_VERSION="${{ steps.bump_version.outputs.new_version }}"
+
+          {
+            echo "## v${NEW_VERSION} - $(date +%Y-%m-%d) [Upstream Update]"
+            echo ""
+            echo "Synced with latest upstream changes from opencarwings repository."
+            echo ""
+            cat upstream_commits.txt
+            echo ""
+            echo ""
+          } > new_changes.md
+
           if [ -f "opencarwings/CHANGELOG.md" ]; then
-            # Insert after the first version header
-            sed -i '/^## v/r upstream_changes.md' opencarwings/CHANGELOG.md
+            cat new_changes.md opencarwings/CHANGELOG.md > temp.md
+            mv temp.md opencarwings/CHANGELOG.md
           else
             echo "# Changelog" > opencarwings/CHANGELOG.md
             echo "" >> opencarwings/CHANGELOG.md
-            cat upstream_changes.md >> opencarwings/CHANGELOG.md
+            cat new_changes.md >> opencarwings/CHANGELOG.md
           fi
 
-      - name: Merge upstream changes
+      - name: Update version in config.yaml
         if: steps.check_upstream.outputs.has_changes == 'true'
         run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-
-          # Try to merge upstream/main
-          if git merge upstream/main --no-edit -m "Sync with upstream"; then
-            echo "Merge successful"
-          else
-            echo "Merge conflict detected - manual resolution required"
-            git merge --abort
-            exit 1
-          fi
+          NEW_VERSION="${{ steps.bump_version.outputs.new_version }}"
+          sed -i "s/^version: .*/version: \"$NEW_VERSION\"/" opencarwings/config.yaml
 
       - name: Update sync marker
         if: steps.check_upstream.outputs.has_changes == 'true'
         run: |
           LATEST_UPSTREAM="${{ steps.check_upstream.outputs.latest_upstream }}"
           echo "$LATEST_UPSTREAM" > .upstream_sync
-          git add .upstream_sync
 
       - name: Commit and push
         if: steps.check_upstream.outputs.has_changes == 'true'
         run: |
-          git add opencarwings/CHANGELOG.md
-          git commit --amend --no-edit
+          NEW_VERSION="${{ steps.bump_version.outputs.new_version }}"
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add opencarwings/config.yaml opencarwings/CHANGELOG.md .upstream_sync
+          git commit -m "Upstream sync - v${NEW_VERSION}"
+          git tag "v${NEW_VERSION}"
           git push origin main
-
-      - name: Create issue on merge conflict
-        if: failure()
-        uses: actions/github-script@v7
-        with:
-          script: |
-            github.rest.issues.create({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              title: '⚠️ Upstream sync failed - merge conflict',
-              body: 'The automated upstream sync encountered a merge conflict and requires manual resolution.\n\nPlease manually sync with upstream:\n```bash\ngit remote add upstream https://github.com/developerfromjokela/opencarwings.git\ngit fetch upstream\ngit merge upstream/main\n# Resolve conflicts\ngit push\n```',
-              labels: ['upstream-sync', 'needs-attention']
-            })
+          git push origin "v${NEW_VERSION}"

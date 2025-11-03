@@ -2,8 +2,8 @@ name: Daily Version Bump
 
 on:
   schedule:
-    - cron: "0 2 * * *" # Runs at 2 AM UTC every day
-  workflow_dispatch: # Can still trigger manually
+    - cron: "0 2 * * *"
+  workflow_dispatch:
 
 jobs:
   bump:
@@ -23,15 +23,15 @@ jobs:
           LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
           if [ -z "$LAST_TAG" ]; then
             echo "has_changes=true" >> $GITHUB_OUTPUT
-            echo "First release, will create version"
           else
-            CHANGES=$(git log ${LAST_TAG}..HEAD --oneline | wc -l)
+            # Only check for non-upstream commits
+            CHANGES=$(git log ${LAST_TAG}..HEAD --oneline --grep="Sync with upstream" --invert-grep | wc -l)
             if [ "$CHANGES" -gt 0 ]; then
               echo "has_changes=true" >> $GITHUB_OUTPUT
-              echo "Found $CHANGES commits since last version"
+              echo "Found $CHANGES addon commits since last version"
             else
               echo "has_changes=false" >> $GITHUB_OUTPUT
-              echo "No changes since last version, skipping bump"
+              echo "No addon changes, skipping bump"
             fi
           fi
 
@@ -47,16 +47,27 @@ jobs:
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "Current version: $VERSION"
 
-      - name: Bump patch version
+      - name: Bump addon patch version
         if: steps.check_changes.outputs.has_changes == 'true'
         id: bump_version
         run: |
           CURRENT="${{ steps.current_version.outputs.version }}"
-          IFS='.' read -r major minor patch <<< "$CURRENT"
-          NEW_VERSION="${major}.${minor}.$((patch + 1))"
+
+          # Check if version has addon patch (e.g., 0.0.2-3)
+          if [[ "$CURRENT" =~ ^([0-9]+\.[0-9]+\.[0-9]+)-([0-9]+)$ ]]; then
+            BASE="${BASH_REMATCH[1]}"
+            PATCH="${BASH_REMATCH[2]}"
+            NEW_VERSION="${BASE}-$((PATCH + 1))"
+          elif [[ "$CURRENT" =~ ^([0-9]+\.[0-9]+\.[0-9]+)$ ]]; then
+            # No addon patch yet, add -1
+            NEW_VERSION="${CURRENT}-1"
+          else
+            # Fallback
+            NEW_VERSION="0.0.1-1"
+          fi
 
           echo "new_version=$NEW_VERSION" >> $GITHUB_OUTPUT
-          echo "New version: $NEW_VERSION"
+          echo "New addon patch version: $NEW_VERSION"
 
       - name: Generate changelog
         if: steps.check_changes.outputs.has_changes == 'true'
@@ -65,12 +76,12 @@ jobs:
           LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
 
           {
-            echo "## v${NEW_VERSION} - $(date +%Y-%m-%d)"
+            echo "## v${NEW_VERSION} - $(date +%Y-%m-%d) [Addon Patch]"
             echo ""
             if [ -z "$LAST_TAG" ]; then
-              git log --pretty=format:"- %s" 
+              git log --pretty=format:"- %s" --grep="Sync with upstream" --invert-grep
             else
-              git log ${LAST_TAG}..HEAD --pretty=format:"- %s"
+              git log ${LAST_TAG}..HEAD --pretty=format:"- %s" --grep="Sync with upstream" --invert-grep
             fi
             echo ""
             echo ""
@@ -92,7 +103,6 @@ jobs:
           if grep -q '^version:' opencarwings/config.yaml; then
             sed -i "s/^version: .*/version: \"$NEW_VERSION\"/" opencarwings/config.yaml
           else
-            # Add version if it doesn't exist
             sed -i '1s/^/version: "'"$NEW_VERSION"'"\n/' opencarwings/config.yaml
           fi
 
@@ -103,7 +113,7 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add opencarwings/config.yaml opencarwings/CHANGELOG.md
-          git commit -m "Bump version to v${NEW_VERSION}"
+          git commit -m "Bump addon version to v${NEW_VERSION}"
           git tag "v${NEW_VERSION}"
           git push origin main
           git push origin "v${NEW_VERSION}"
