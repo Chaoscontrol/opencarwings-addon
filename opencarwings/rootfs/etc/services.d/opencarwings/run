@@ -17,4 +17,7 @@ export SECRET_KEY=django-insecure-default-key-change-in-production
 
 echo "Starting Django development server on port 8124..."
 
-exec python manage.py runserver 0.0.0.0:8124 --noreload
+# Start Daphne ASGI server (handles both HTTP and TCP)
+exec daphne -b 0.0.0.0 -p 8124 \
+  --endpoint tcp:port=55230:interface=0.0.0.0 \
+  carwings.asgi:application
