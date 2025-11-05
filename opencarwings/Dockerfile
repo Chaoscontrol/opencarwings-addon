@@ -17,6 +17,11 @@ RUN apk add --no-cache \
     curl \
     libffi-dev \
     openssl-dev \
+   # --- TAILSCALE & UTILITY ADDITIONS ---
+    tailscale \
+    ip6tables \
+    jq \
+    # -------------------------------------
     && python3 -m pip install --upgrade pip
 
 # Clone OpenCarwings upstream
@@ -34,10 +39,13 @@ RUN pip3 install -r requirements.txt psycopg2-binary \
     django-mathfilters drf-yasg
     
 # Create directories for data persistence
-RUN mkdir -p /data/postgres /data/redis /data/static /data/media /data/logs
+RUN mkdir -p /data/postgres /data/redis /data/static /data/media /data/logs /var/lib/tailscale
 
 # Configure PostgreSQL
 RUN mkdir -p /run/postgresql && chown postgres:postgres /run/postgresql
+
+# Set ownership for Tailscale state directory
+RUN chown root:root /var/lib/tailscale
 
 # Copy root filesystem
 COPY rootfs/ /
