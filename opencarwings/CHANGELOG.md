@@ -1,3 +1,10 @@
+## v0.0.7 - 2025-12-01 [Upstream Update]
+
+Synced with latest upstream changes from opencarwings repository.
+
+- Merge pull request #7 from Chaoscontrol/monogoto (663815e)
+- Fix "from" sms max length limit for Monogoto (32dbaef)
+
 ## v0.0.6-1 - 2025-12-01 [Addon Patch]
 
 - Merge branch 'main' of https://github.com/Chaoscontrol/opencarwings-addon
