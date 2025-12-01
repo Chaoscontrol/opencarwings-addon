@@ -1,3 +1,10 @@
+## v0.0.6-1 - 2025-12-01 [Addon Patch]
+
+- Merge branch 'main' of https://github.com/Chaoscontrol/opencarwings-addon
+- Removed all Tailscale implementation as it cannot expose custom TCP ports (55230)
+- Commented tailscale additions to debug. Working version without tailscale.
+- Attempt 1 at integrating Tailscale for TCU port tunnel. Not starting.
+
 ## v0.0.6 - 2025-11-29 [Upstream Update]
 
 Synced with latest upstream changes from opencarwings repository.
