@@ -1,3 +1,16 @@
+## v0.0.8 - 2025-12-02 [Upstream Update]
+
+Synced with latest upstream changes from opencarwings repository.
+
+- Improvements and fixes to probe_crm on battery_degradation_analysis parsing and added new release notes for december (8f72422)
+- Update README.md (e5cfeb6)
+- Increase provider configuration max length to 512 for longer webhook URLs (8bda2a9)
+- Update docker-publish.yml (50b1ead)
+- Update docker-publish.yml (4b85aac)
+- Delete .github/workflows/docker-image.yml (3b6b45f)
+- Create docker-publish.yml (55ed9ca)
+- Create docker-image.yml (c239b05)
+
 ## v0.0.7 - 2025-12-01 [Upstream Update]
 
 Synced with latest upstream changes from opencarwings repository.
