@@ -1,3 +1,10 @@
+## v0.0.9 - 2025-12-08 [Upstream Update]
+
+Synced with latest upstream changes from opencarwings repository.
+
+- Apply text field limit to all AutoDJ fields and log failed charge point update responses (cdfa97b)
+- Add limit to textfield (292d168)
+
 ## v0.0.8 - 2025-12-02 [Upstream Update]
 
 Synced with latest upstream changes from opencarwings repository.
