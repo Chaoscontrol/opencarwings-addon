@@ -1,3 +1,11 @@
+## v0.0.11 - 2025-12-13 [Upstream Update]
+
+Synced with latest upstream changes from opencarwings repository.
+
+- Fix thumbnail picture in Google POI search and enable streaming in information channels with multiple channels (26fdc98)
+- Unwrap cp (3b038bd)
+- Wrap charging point update items in new encoding function and check cellular signal type (7cd3645)
+
 ## v0.0.10 - 2025-12-09 [Upstream Update]
 
 Synced with latest upstream changes from opencarwings repository.
