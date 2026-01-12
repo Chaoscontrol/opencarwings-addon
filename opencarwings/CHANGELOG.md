@@ -1,3 +1,9 @@
+## v0.0.14 - 2026-01-12 [Upstream Update]
+
+Synced with latest upstream changes from opencarwings repository.
+
+- Update README.md (cbb0e2a)
+
 ## v0.0.13 - 2025-12-15 [Upstream Update]
 
 Synced with latest upstream changes from opencarwings repository.
