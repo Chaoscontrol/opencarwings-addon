@@ -1,3 +1,11 @@
+## v0.0.16 - 2026-01-20 [Upstream Update]
+
+Synced with latest upstream changes from opencarwings repository.
+
+- Fix logic with soft errors (e356095)
+- Fix logic with soft errors (b557b74)
+- Add another channel to blacklist and add alerts for TCU parameter & auth mismatches for easier debugging (dff8943)
+
 ## v0.0.15 - 2026-01-19 [Upstream Update]
 
 Synced with latest upstream changes from opencarwings repository.
