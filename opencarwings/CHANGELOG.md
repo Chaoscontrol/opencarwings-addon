@@ -1,3 +1,9 @@
+## v0.0.18 - 2026-01-28 [Upstream Update]
+
+Synced with latest upstream changes from opencarwings repository.
+
+- Implement logic to authenticate without user&pass for QY8XXX models which don't have authentication. (85c043c)
+
 ## v0.0.17 - 2026-01-27 [Upstream Update]
 
 Synced with latest upstream changes from opencarwings repository.
