@@ -1,3 +1,8 @@
+## v0.0.19-1 - 2026-02-03 [Addon Patch]
+
+- Merge branch 'main' of https://github.com/Chaoscontrol/opencarwings-addon
+- Bundled frpc to expose necessary ports via VPS
+
 ## v0.0.19 - 2026-02-02 [Upstream Update]
 
 Synced with latest upstream changes from opencarwings repository.
